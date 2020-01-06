@@ -73,12 +73,16 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
   }
 
   async generateModels(options) {
+    // for repo to generate relation name
+    this.artifactInfo.relationName = options.relationName;
     const modelDir = this.artifactInfo.modelDir;
     const sourceModel = options.sourceModel;
 
     const targetModel = options.destinationModel;
     const relationType = options.relationType;
     const relationName = options.relationName;
+    const defaultRelationName = options.defaultRelationName;
+    const sourceKeyName = options.sourceKeyName;
     const fktype = options.destinationModelPrimaryKeyType;
 
     const project = new relationUtils.AstLoopBackProject();
@@ -88,10 +92,16 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
       sourceModel,
     );
     const sourceClass = relationUtils.getClassObj(sourceFile, sourceModel);
+    // this checks if the source key already exists, so the 2nd param should be sourceKeyName
+    relationUtils.doesRelationExist(sourceClass, sourceKeyName);
 
-    relationUtils.doesRelationExist(sourceClass, relationName);
-
-    const modelProperty = this.getBelongsTo(targetModel, relationName, fktype);
+    const modelProperty = this.getBelongsTo(
+      targetModel,
+      relationName,
+      defaultRelationName,
+      sourceKeyName,
+      fktype,
+    );
 
     relationUtils.addProperty(sourceClass, modelProperty);
     const imports = relationUtils.getRequiredImports(targetModel, relationType);
@@ -101,10 +111,36 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
     await sourceFile.save();
   }
 
-  getBelongsTo(className, relationName, fktype) {
+  getBelongsTo(
+    className,
+    relationName,
+    defaultRelationName,
+    sourceKeyName,
+    fktype,
+  ) {
+    // checks if relation name is customized
+    let relationDecorator = [
+      {
+        name: 'belongsTo',
+        arguments: [`() =>  ${className}`],
+      },
+    ];
+    // except the customized relation name, also need to check if the property name is the same as relation name
+    // or it will get 'navigational property' error when creating instances
+    if (
+      defaultRelationName !== relationName ||
+      relationName === sourceKeyName
+    ) {
+      relationDecorator = [
+        {
+          name: 'belongsTo',
+          arguments: [`() =>  ${className}, {name: '${relationName}'}`],
+        },
+      ];
+    }
     return {
-      decorators: [{name: 'belongsTo', arguments: [`() =>  ${className}`]}],
-      name: relationName,
+      decorators: relationDecorator,
+      name: sourceKeyName,
       type: fktype,
     };
   }
@@ -122,7 +158,7 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
   }
 
   _getRepositoryRelationPropertyName() {
-    return utils.camelCase(this.artifactInfo.dstModelClass);
+    return this.artifactInfo.relationName;
   }
 
   _initializeProperties(options) {
@@ -140,22 +176,22 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
   }
 
   _addCreatorToRepositoryConstructor(classConstructor) {
-    const relationPropertyName = this._getRepositoryRelationPropertyName();
+    const relationName = this.artifactInfo.relationName;
     const statement =
-      `this.${relationPropertyName} = ` +
+      `this.${relationName} = ` +
       `this.createBelongsToAccessorFor('` +
-      `${this.artifactInfo.relationName.replace(/Id$/, '')}',` +
+      `${relationName}',` +
       ` ${utils.camelCase(this.artifactInfo.dstRepositoryClassName)}` +
       `Getter,);`;
     classConstructor.insertStatements(1, statement);
   }
 
   _registerInclusionResolverForRelation(classConstructor, options) {
-    const relationPropertyName = this._getRepositoryRelationPropertyName();
+    const relationName = this.artifactInfo.relationName;
     if (options.registerInclusionResolver) {
       const statement =
         `this.registerInclusionResolver(` +
-        `'${relationPropertyName}', this.${relationPropertyName}.inclusionResolver);`;
+        `'${relationName}', this.${relationName}.inclusionResolver);`;
       classConstructor.insertStatements(2, statement);
     }
   }

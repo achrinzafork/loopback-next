@@ -83,10 +83,22 @@ const SourceEntries = {
     content: readSourceFile('./repositories/order-class-type.repository.ts'),
   },
 
-  NoKeyModel: {
+  NokeyModel: {
     path: MODEL_APP_PATH,
     file: 'nokey.model.ts',
     content: readSourceFile('./models/nokey.model.ts'),
+  },
+
+  NokeyRepository: {
+    path: REPOSITORY_APP_PATH,
+    file: 'nokey.repository.ts',
+    content: readSourceFile('./repositories/nokey.repository.ts'),
+  },
+
+  NoRepoModel: {
+    path: MODEL_APP_PATH,
+    file: 'no-repo.model.ts',
+    content: readSourceFile('./models/no-repo.model.ts'),
   },
 
   IndexOfControllers: {
@@ -167,6 +179,7 @@ exports.SANDBOX_FILES = [
   SourceEntries.OrderClassRepository,
   SourceEntries.CustomerClassTypeRepository,
   SourceEntries.OrderClassTypeRepository,
+  SourceEntries.NokeyRepository,
   {
     path: DATASOURCE_APP_PATH,
     file: 'restdb.datasource.ts',
@@ -174,7 +187,8 @@ exports.SANDBOX_FILES = [
   },
   SourceEntries.CustomerModel,
   SourceEntries.OrderModel,
-  SourceEntries.NoKeyModel,
+  SourceEntries.NokeyModel,
+  SourceEntries.NoRepoModel,
   SourceEntries.CustomerClassModel,
   SourceEntries.OrderClassModel,
   SourceEntries.CustomerClassTypeModel,
@@ -188,6 +202,7 @@ exports.SANDBOX_FILES2 = [
   SourceEntries.OrderClassRepository,
   SourceEntries.CustomerClassTypeRepository,
   SourceEntries.OrderClassTypeRepository,
+  SourceEntries.NokeyRepository,
 
   {
     path: DATASOURCE_APP_PATH,
@@ -197,7 +212,8 @@ exports.SANDBOX_FILES2 = [
 
   SourceEntries.CustomerModel,
   SourceEntries.OrderModel,
-  SourceEntries.NoKeyModel,
+  SourceEntries.NokeyModel,
+  SourceEntries.NoRepoModel,
   SourceEntries.CustomerClassModel,
   SourceEntries.OrderClassModel,
   SourceEntries.CustomerClassTypeModel,

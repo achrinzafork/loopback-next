@@ -172,7 +172,7 @@ describe('lb4 relation', function() {
         relationType: 'belongsTo',
         sourceModel: 'Order',
         destinationModel: 'Customer',
-        relationName: 'myRelation',
+        sourceKeyName: 'customerId',
       },
       {
         relationType: 'belongsTo',
@@ -186,10 +186,26 @@ describe('lb4 relation', function() {
         destinationModel: 'CustomerClassType',
         relationName: 'myRelation',
       },
+      {
+        relationType: 'hasMany',
+        sourceModel: 'Customer',
+        destinationModel: 'Order',
+        foreignKeyName: 'customerId',
+        relationName: 'orders',
+      },
     ];
 
     it('verifies that a preexisting property will be overwritten', async () => {
       await sandbox.reset();
+      await testUtils
+        .executeGenerator(generator)
+        .inDir(SANDBOX_PATH, () =>
+          testUtils.givenLBProject(SANDBOX_PATH, {
+            additionalFiles: SANDBOX_FILES,
+          }),
+        )
+        .withPrompts(promptList[3]);
+
       await testUtils
         .executeGenerator(generator)
         .inDir(SANDBOX_PATH, () =>
@@ -216,19 +232,14 @@ describe('lb4 relation', function() {
         relationType: 'belongsTo',
         sourceModel: 'Order',
         destinationModel: 'Customer',
-        relationName: 'customerPK',
+        sourceKeyName: 'customerId',
+        relationName: 'my_customer',
       },
       {
         relationType: 'belongsTo',
         sourceModel: 'OrderClass',
         destinationModel: 'CustomerClass',
-        relationName: 'customerPK',
-      },
-      {
-        relationType: 'belongsTo',
-        sourceModel: 'OrderClassType',
-        destinationModel: 'CustomerClassType',
-        relationName: 'customerPK',
+        relationName: 'my_customer',
       },
     ];
     promptArray.forEach(function(multiItemPrompt, i) {
@@ -250,7 +261,7 @@ describe('lb4 relation', function() {
           .withPrompts(multiItemPrompt);
       });
 
-      it('relation name should be customerPK', async () => {
+      it('relation name should be my_customer', async () => {
         const sourceFilePath = path.join(
           SANDBOX_PATH,
           MODEL_APP_PATH,

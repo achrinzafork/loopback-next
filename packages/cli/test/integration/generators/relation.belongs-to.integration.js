@@ -162,7 +162,7 @@ describe('lb4 relation', function() {
         relationType: 'belongsTo',
         sourceModel: 'Order',
         destinationModel: 'Customer',
-        sourceKeyName: 'customerId',
+        foreignKeyName: 'customerId',
       },
       {
         relationType: 'hasMany',
@@ -210,7 +210,7 @@ describe('lb4 relation', function() {
         relationType: 'belongsTo',
         sourceModel: 'Order',
         destinationModel: 'Customer',
-        sourceKeyName: 'customerId',
+        foreignKeyName: 'customerId',
         relationName: 'my_customer',
       },
       {

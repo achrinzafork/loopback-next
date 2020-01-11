@@ -218,7 +218,7 @@ export class Order extends Entity {
 `;
 
 exports[
-  `lb4 relation generates model relation with custom relation name answers {"relationType":"belongsTo","sourceModel":"Order","destinationModel":"Customer","sourceKeyName":"customerId","relationName":"my_customer"} relation name should be my_customer 1`
+  `lb4 relation generates model relation with custom relation name answers {"relationType":"belongsTo","sourceModel":"Order","destinationModel":"Customer","foreignKeyName":"customerId","relationName":"my_customer"} relation name should be my_customer 1`
 ] = `
 import {Entity, model, property, belongsTo} from '@loopback/repository';
 import {Customer} from './customer.model';
@@ -267,7 +267,7 @@ export class OrderClass extends Entity {
   name?: string;
 
   @belongsTo(() => CustomerClass, {name: 'my_customer'})
-  customerClassCustNumber: number;
+  customerClassId: number;
 
   constructor(data?: Partial<OrderClass>) {
     super(data);

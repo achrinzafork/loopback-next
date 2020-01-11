@@ -82,7 +82,7 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
     const relationType = options.relationType;
     const relationName = options.relationName;
     const defaultRelationName = options.defaultRelationName;
-    const sourceKeyName = options.sourceKeyName;
+    const foreignKeyName = options.foreignKeyName;
     const fktype = options.destinationModelPrimaryKeyType;
 
     const project = new relationUtils.AstLoopBackProject();
@@ -92,14 +92,14 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
       sourceModel,
     );
     const sourceClass = relationUtils.getClassObj(sourceFile, sourceModel);
-    // this checks if the source key already exists, so the 2nd param should be sourceKeyName
-    relationUtils.doesRelationExist(sourceClass, sourceKeyName);
+    // this checks if the source key already exists, so the 2nd param should be foreignKeyName
+    relationUtils.doesRelationExist(sourceClass, foreignKeyName);
 
     const modelProperty = this.getBelongsTo(
       targetModel,
       relationName,
       defaultRelationName,
-      sourceKeyName,
+      foreignKeyName,
       fktype,
     );
 
@@ -115,7 +115,7 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
     className,
     relationName,
     defaultRelationName,
-    sourceKeyName,
+    foreignKeyName,
     fktype,
   ) {
     // checks if relation name is customized
@@ -136,7 +136,7 @@ module.exports = class BelongsToRelationGenerator extends BaseRelationGenerator 
     }
     return {
       decorators: relationDecorator,
-      name: sourceKeyName,
+      name: foreignKeyName,
       type: fktype,
     };
   }

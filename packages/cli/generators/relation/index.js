@@ -34,8 +34,8 @@ const PROMPT_MESSAGE_PROPERTY_NAME =
 const PROMPT_MESSAGE_RELATION_NAME = 'Relation name';
 const PROMPT_MESSAGE_FOREIGN_KEY_NAME =
   'Foreign key name to define on the target model';
-const PROMPT_MESSAGE_SOURCE_KEY_NAME =
-  'Source key name to define on the source model';
+const PROMPT_MESSAGE_FOREIGN_KEY_NAME_BELONGSTO =
+  'Foreign key name to define on the source model';
 
 module.exports = class RelationGenerator extends ArtifactGenerator {
   constructor(args, opts) {
@@ -67,10 +67,10 @@ module.exports = class RelationGenerator extends ArtifactGenerator {
       description: 'Destination model',
     });
 
-    this.option('sourceKeyName', {
+    this.option('defaultForeignKeyName', {
       type: String,
       required: false,
-      description: 'Source model source key name',
+      description: 'default foreign key name',
     });
 
     this.option('foreignKeyName', {
@@ -131,7 +131,7 @@ module.exports = class RelationGenerator extends ArtifactGenerator {
     switch (this.artifactInfo.relationType) {
       case relationUtils.relationType.belongsTo:
         // this is how the belongsToAccessor generates the default relation name
-        defaultRelationName = this.artifactInfo.sourceKeyName.replace(
+        defaultRelationName = this.artifactInfo.foreignKeyName.replace(
           /Id$/,
           '',
         );
@@ -341,94 +341,64 @@ module.exports = class RelationGenerator extends ArtifactGenerator {
       this.artifactInfo.destinationModel,
     );
 
-    if (
-      this.artifactInfo.relationType === relationUtils.relationType.belongsTo
-    ) {
-      // for belongsTo the fk is the id property of source model by default
-      // should check the existance of fk here.
-      // default source key for belongsTo
-      this.artifactInfo.defaultSourceKeyName =
-        utils.camelCase(this.artifactInfo.destinationModel) +
-        utils.toClassName(this.artifactInfo.destinationModelPrimaryKey);
-
-      return this.prompt([
-        {
-          type: 'string',
-          name: 'sourceKeyName',
-          message: PROMPT_MESSAGE_SOURCE_KEY_NAME,
-          when: this.artifactInfo.relationName === undefined,
-          default: this.artifactInfo.defaultSourceKeyName,
-          validate: utils.validateKeyName,
-        },
-      ]).then(props => {
-        debug(`props after relation name prompt: ${inspect(props)}`);
-        Object.assign(this.artifactInfo, props);
-      });
-    }
-
-    if (this.artifactInfo.sourceModelPrimaryKey == null) {
-      return this.exit(
-        new Error(ERROR_SOURCE_MODEL_PRIMARY_KEY_DOES_NOT_EXIST),
+    if (this.options.foreignKeyName) {
+      debug(
+        `Foreign key name received from command line: ${this.options.foreignKeyName}`,
       );
+      this.artifactInfo.foreignKeyName = this.options.foreignKeyName;
     }
 
-    if (this.artifactInfo.destinationModelPrimaryKey == null) {
-      return this.exit(
-        new Error(ERROR_DESTINATION_MODEL_PRIMARY_KEY_DOES_NOT_EXIST),
-      );
-    }
-
-    // For hasMany (and hasOne)
     this.artifactInfo.defaultForeignKeyName =
-      utils.camelCase(this.artifactInfo.sourceModel) +
-      utils.toClassName(this.artifactInfo.sourceModelPrimaryKey);
+      this.artifactInfo.relationType === 'belongsTo'
+        ? utils.camelCase(this.artifactInfo.destinationModel) + 'Id'
+        : utils.camelCase(this.artifactInfo.sourceModel) + 'Id';
+
+    const msg =
+      this.artifactInfo.relationType === 'belongsTo'
+        ? PROMPT_MESSAGE_FOREIGN_KEY_NAME_BELONGSTO
+        : PROMPT_MESSAGE_FOREIGN_KEY_NAME;
+    const foreignKeyModel =
+      this.artifactInfo.relationType === 'belongsTo'
+        ? this.artifactInfo.sourceModel
+        : this.artifactInfo.destinationModel;
 
     const project = new relationUtils.AstLoopBackProject();
-
-    const destinationFile = path.join(
+    const fkFile = path.join(
       this.artifactInfo.modelDir,
-      utils.getModelFileName(this.artifactInfo.destinationModel),
+      utils.getModelFileName(foreignKeyModel),
     );
-    const df = project.addSourceFileAtPath(destinationFile);
-    const cl = relationUtils.getClassObj(
-      df,
-      this.artifactInfo.destinationModel,
-    );
-    this.artifactInfo.doesForeignKeyExist = relationUtils.doesPropertyExist(
-      cl,
-      this.artifactInfo.defaultForeignKeyName,
-    );
+    const df = project.addSourceFileAtPath(fkFile);
+    const cl = relationUtils.getClassObj(df, foreignKeyModel);
 
-    if (!this.artifactInfo.doesForeignKeyExist) {
-      if (this.options.foreignKeyName) {
-        debug(
-          `Foreign key name received from command line: ${this.options.foreignKeyName}`,
-        );
-        this.artifactInfo.foreignKeyName = this.options.foreignKeyName;
+    return this.prompt([
+      {
+        type: 'string',
+        name: 'foreignKeyName',
+        message: msg,
+        default: this.artifactInfo.defaultForeignKeyName,
+        when: !this.artifactInfo.foreignKeyName,
+        validate: utils.validateKeyName,
+      },
+    ]).then(props => {
+      debug(`props after foreign key name prompt: ${inspect(props)}`);
+      Object.assign(this.artifactInfo, props);
+      this.artifactInfo.doesForeignKeyExist = relationUtils.doesPropertyExist(
+        cl,
+        this.artifactInfo.foreignKeyName,
+      );
+      // checkes if its the case that the fk already exists in source model and decorated by @belongsTo, which should be aborted
+      if (
+        this.artifactInfo.doesForeignKeyExist &&
+        this.artifactInfo.relationType === 'belongsTo'
+      ) {
+        try {
+          relationUtils.doesRelationExist(cl, this.artifactInfo.foreignKeyName);
+        } catch (err) {
+          this.exit(err);
+        }
       }
-
-      return this.prompt([
-        {
-          type: 'string',
-          name: 'foreignKeyName',
-          message: PROMPT_MESSAGE_FOREIGN_KEY_NAME,
-          default: this.artifactInfo.defaultForeignKeyName,
-          when: this.artifactInfo.foreignKeyName === undefined,
-          validate: utils.validateKeyName,
-        },
-      ]).then(props => {
-        debug(`props after foreign key name prompt: ${inspect(props)}`);
-        Object.assign(this.artifactInfo, props);
-        this.artifactInfo.doesForeignKeyExist = relationUtils.doesPropertyExist(
-          cl,
-          this.artifactInfo.foreignKeyName,
-        );
-
-        return props;
-      });
-    } else {
-      this.artifactInfo.foreignKeyName = this.artifactInfo.defaultForeignKeyName;
-    }
+      return props;
+    });
   }
 
   async promptRelationName() {
@@ -451,13 +421,13 @@ module.exports = class RelationGenerator extends ArtifactGenerator {
         type: 'string',
         name: 'relationName',
         message: msg,
-        when: this.artifactInfo.relationName === undefined,
+        when: !this.artifactInfo.relationName,
         default: this.artifactInfo.defaultRelationName,
         validate: inputName =>
           utils.validateRelationName(
             inputName,
             this.artifactInfo.relationType,
-            this.artifactInfo.sourceKeyName,
+            this.artifactInfo.foreignKeyName,
           ),
       },
     ]).then(props => {

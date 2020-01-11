@@ -172,11 +172,11 @@ exports.validateKeyName = function(name) {
  * checks if the belongsTo relation has the same relation name and source key name,
  * which is an invalid case.
  */
-exports.validateRelationName = function(name, type, sourceKeyName) {
+exports.validateRelationName = function(name, type, foreignKeyName) {
   if (!name || name === '') {
     return 'Relation name cannot be empty';
   }
-  if (type === 'belongsTo' && name === sourceKeyName) {
+  if (type === 'belongsTo' && name === foreignKeyName) {
     return util.format(
       'Relation name cannot be the same as the source key name: %s',
       name,

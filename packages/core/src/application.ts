@@ -524,6 +524,8 @@ export class Application extends Context implements LifeCycleObserver {
     return registerInterceptor(this, interceptor, options);
   }
 
+  public auditor() {}
+
   /**
    * Set up signals that are captured to shutdown the application
    */

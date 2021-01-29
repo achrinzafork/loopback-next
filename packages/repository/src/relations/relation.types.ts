@@ -50,6 +50,29 @@ export interface RelationDefinitionBase {
    * E.g. when a Customer has many Order instances, then Order is the target.
    */
   target: TypeResolver<Entity, typeof Entity>;
+
+  /**
+   * The relation's "strongness"
+   *
+   * @remarks
+   * This property is used during database migration, and data query and
+   * manipulation operations.
+   *
+   * ## Possible values
+   *
+   * - **true** - The connector must create a strong relation during database
+   *     migration, or leverage an existing strong relation for data query and
+   *     manipulation operations
+   *
+   * - **false** - The connector must not create a strong relation.
+   *
+   * - **'try'** - The connector should attempt to create a strong relation during
+   *     databae migration, or leverage an existing strong relation for data
+   *     query and manipulation operations.
+   *
+   * @experimental
+   */
+  strong: boolean | 'try';
 }
 
 /**

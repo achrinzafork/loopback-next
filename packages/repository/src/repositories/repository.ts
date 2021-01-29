@@ -4,6 +4,7 @@
 // License text available at https://opensource.org/licenses/MIT
 
 import {Filter, FilterExcludingWhere, Where} from '@loopback/filter';
+import {EntityData, RelationDefinitionMap} from '..';
 import {
   AnyObject,
   Command,
@@ -15,6 +16,7 @@ import {
 } from '../common-types';
 import {CrudConnector} from '../connectors';
 import {DataSource} from '../datasource';
+import {ModelMetadataHelper} from '../decorators';
 import {EntityNotFoundError} from '../errors';
 import {Entity, Model, ValueObject} from '../model';
 import {InclusionResolver} from '../relations/relation.types';
@@ -261,12 +263,37 @@ export class CrudRepositoryImpl<T extends Entity, ID>
     InclusionResolver<T, Entity>
   > = new Map();
 
+  private _entityClass: typeof Entity & {prototype: T};
+
+  private _strongRelations: RelationDefinitionMap[];
+
+  public get entityClass() {
+    return this._entityClass;
+  }
+
+  public set entityClass(entityClass: typeof Entity & {prototype: T}) {
+    const modelDefinition = ModelMetadataHelper.getModelMetadata(entityClass);
+
+    if ('relations' in modelDefinition)
+      for (const relationName in modelDefinition.relations) {
+        const relationDefinition = modelDefinition[relationName];
+
+        if (relationDefinition.strong)
+          this._strongRelations.push({
+            [relationName]: relationDefinition,
+          });
+      }
+
+    this._entityClass = entityClass;
+  }
+
   constructor(
     public dataSource: DataSource,
     // model should have type "typeof T", but that's not supported by TSC
-    public entityClass: typeof Entity & {prototype: T},
+    entityClass: typeof Entity & {prototype: T},
   ) {
     this.connector = dataSource.connector as CrudConnector;
+    this.entityClass = entityClass;
   }
 
   private toModels(data: Promise<DataObject<Entity>[]>): Promise<T[]> {
@@ -276,6 +303,12 @@ export class CrudRepositoryImpl<T extends Entity, ID>
   private toModel(data: Promise<DataObject<Entity>>): Promise<T> {
     return data.then(d => new this.entityClass(d) as T);
   }
+
+  /**
+   *
+   * @param data An object containing the different relations
+   */
+  private ensureConnectorsSupportsStrongRelations(data: Promise<EntityData>) {}
 
   create(entity: DataObject<T>, options?: Options): Promise<T> {
     return this.toModel(
